@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
 namespace Net8APISample.Controllers
 {
@@ -12,10 +13,13 @@ namespace Net8APISample.Controllers
         };
 
         private readonly ILogger<WeatherForecastController> _logger;
+        private readonly IConfiguration _configuration;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+
+        public WeatherForecastController(ILogger<WeatherForecastController> logger, IConfiguration configuration)
         {
             _logger = logger;
+            _configuration = configuration;
         }
 
         [HttpGet(Name = "GetWeatherForecast")]
@@ -36,13 +40,7 @@ namespace Net8APISample.Controllers
             int iterations = 10; // Number of iterations for the long-running operation
             for (int i = 0; i < iterations; i++)
             {
-                // Check if the request has been canceled
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    Console.WriteLine($"Request was canceled in iteration {i + 1}.");
-                    return StatusCode(499, "Request canceled by the client."); // 499: Client Closed Request
-                }
-
+                
                 Console.WriteLine($"Iteration {i + 1} of {iterations}... (Server is processing)");
 
                 // Simulate some work with a delay
@@ -60,6 +58,38 @@ namespace Net8APISample.Controllers
             Console.WriteLine("Operation completed successfully.");
             return Ok("Operation completed successfully.");
         }
+
+        [HttpGet("long-running-operation1")]
+        public async Task<IActionResult> LongRunningOperation1(CancellationToken cancellationToken)
+        {
+            int iterations = 10; // Number of iterations for the long-running operation
+            for (int i = 0; i < iterations; i++)
+            {
+                Console.WriteLine($"Iteration {i + 1} of {iterations}... (Server is processing)");
+
+                // Simulate some work with a delay
+                try
+                {
+                    await Task.Delay(1000, cancellationToken);
+                }
+                catch (TaskCanceledException)
+                {
+                    Console.WriteLine($"TaskCanceledException caught in iteration {i + 1}.");
+                    return StatusCode(499, "Request canceled by the client.");
+                }
+            }
+
+            Console.WriteLine("Operation completed successfully.");
+            return Ok("Operation completed successfully.");
+        }
+
+        [HttpGet("allowed-origins")]
+        public IActionResult GetAllowedOrigins()
+        {
+            var allowedOrigins = _configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+            return Ok(new { AllowedOrigins = allowedOrigins });
+        }
+
     }
 
 
