@@ -6,7 +6,7 @@ name: Build docker image and deploy to Pratik ACR
 on:
   push:
     branches:
-      - Master
+      - master
   workflow_dispatch:
 
 permissions:
