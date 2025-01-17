@@ -1,0 +1,47 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build docker image and deploy to Pratik ACR 
+
+on:
+  push:
+    branches:
+      - Master
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+    
+jobs:
+  build:
+    runs-on: 'ubuntu-latest'
+    environment:
+      name: 'production'
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: 'Login to ACR using UAMI'
+      uses: azure/login@v2
+      with:
+         client-id: ${{ secrets.UAMI_CLIENT_ID_PRATIK}}
+         tenant-id: ${{ secrets.UAMI_TENANT_ID_PRATIK }}
+         subscription-id: ${{ secrets.UAMI_SUBSCRIPTION_ID_PRATIK }}
+
+    - name: Login to ACR and Verify
+      run: |
+        az acr login --name pratiksacr
+        if [ $? -ne 0 ]; then
+          echo "ACR login failed" && exit 1
+        fi
+
+    - name: Build and push container image to registry
+      run: | 
+        docker build --cache-from=type=registry,ref=pratiksacr.azurecr.io/net8-sample:latest \
+          -t pratiksacr.azurecr.io/net8-sample:${{ github.sha }} \
+          -t pratiksacr.azurecr.io/net8-sample:latest .
+        docker push pratiksacr.azurecr.io/net8-sample:${{ github.sha }}
+        docker push pratiksacr.azurecr.io/net8-sample:latest
